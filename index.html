@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<title>「大学の図書館」の検索</title>
+<script type="module">
+// urlから、jsonデータをfetchして取得する
+async function getData(url) {
+  const response = await fetch(url);
+  const data = await response.json();
+  return data;
+}
+
+function searchObjectsByKeyword(data, keyword) {
+  const pattern = new RegExp(keyword, 'i'); // 大文字・小文字を無視
+  const result = [];
+
+  // オブジェクトや配列を再帰的に探索
+  function containsKeyword(obj) {
+    for (const key in obj) {
+      const value = obj[key];
+
+      if (value === null || value === undefined) {
+        delete obj[key];
+        continue; // nullやundefinedは削除してスキップ
+      }
+      if (typeof value === 'string') {
+        if (pattern.test(value)) {
+          return true;
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        if (containsKeyword(value)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  for (const item of data) {
+    if (containsKeyword(item)) {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
+// 結果表示を組み立てる
+function createResult(keys2) {
+  let resultList2 = '';
+  resultList2 += '<ol class="resultHtml4">';
+  for (let i = 0; i < keys2.length; ++i) {
+    let resultHtml4 = craeteHtmlFromJson(keys2[i]);
+    resultList2 += resultHtml4  + '</li>'; // </ol>';  
+    }
+    resultList2 += '</ol>';
+    return [resultList2, keys2.length];
+    }
+
+function craeteHtmlFromJson(keys2i) {
+  let resultHtml3 = [];
+  const title = keys2i['Title'] || 'No Title';
+  resultHtml3.push(`<li class="title">${title}</li><ul class="hidden hidden2">`);
+  for (const [key, value] of Object.entries(keys2i)) {
+    resultHtml3.push(`<li class="${key}">${key} ${value}</li>`);
+    }
+  resultHtml3.push('</ul>');
+  return resultHtml3.join('');
+  }
+
+// console.log('要素を消す');
+const deleteElem = (elem) => {
+  let items = document.querySelectorAll(elem);  // '.resultHtml4');
+  for (const item of items) {
+    item.remove();
+    }
+}
+
+const url = './daigakunotoshokan.json'; // ここにjsonファイルのURLを指定
+const data = await getData(url);
+
+// 入力フォーム
+const input = document.getElementById("sampleForm");
+const span = document.getElementById("inputCounter");
+input.addEventListener("keyup", function () {
+  span.textContent = input.value.length;
+  if (span.textContent > 2) {
+      let search_word = input.value;
+      const result = searchObjectsByKeyword(data, search_word); // ←検索したい単語を指定
+      console.log('result:', result);
+      // const keys2 = Object.keys(result);
+      const resultList = createResult(result); //(keys2);
+      document.getElementById('resultHtml').innerHTML = resultList[0];
+      document.getElementById('resultTotal').innerHTML = '<div class="total">Total: ' + resultList[1] + '件です。</div>';
+            document.getElementById('clickBtn1').innerHTML = '<input type="button" value="詳細表示" id="clickBtn1" />';
+        // } else if(span.textContent == 0) {
+        } else {
+            console.log('ここで要素を消す');
+            deleteElem('.resultHtml4');
+            deleteElem('.total');
+        };
+    });
+</script>
+<style>
+.hidden {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+    <label for="sampleForm">「大学の図書館」の検索
+        <ul>
+            <li>３文字以上入力すると検索を開始します。</li>
+            <li>正規表現が使えます（２文字で検索したい場合、ドットを加えることで可能）。</li>
+        </ul>
+    </label>
+
+    <br />
+    <input type="text" id="sampleForm" placeholder=".*大.*図書館"/>
+    <p><span id="inputCounter">0</span>文字</p>
+    <div id="clickBtn1"></div>
+    <div id="resultTotal"></div>
+    <div id="resultHtml"></div>
+
+    <div>
+        データの出典、ソースなどは<a href="https://github.com/wonox/nijuichidaishu">こちら</a>。
+
+    </div>
+
+<script>
+        // 詳細表示をトグルする
+        const btn = document.getElementById('clickBtn1');
+        const categories = document.getElementsByClassName('hidden2');
+
+        btn.addEventListener('click', (evt) => {
+            console.log(categories);
+            console.log(categories.length);
+            const categories_length = categories.length;
+             Array.prototype.forEach.call( categories , e => {
+                console.log( e ) ;
+                e.classList.toggle('hidden');
+                console.log('categories:', categories);
+            });
+            
+        });
+</script>
+</body>
+</html>
