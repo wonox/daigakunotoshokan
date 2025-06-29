@@ -8,39 +8,37 @@ async function getData(url) {
   const data = await response.json();
   return data;
 }
-
 function searchObjectsByKeyword(data, keyword) {
   const pattern = new RegExp(keyword, 'i'); // 大文字・小文字を無視
   const result = [];
+// オブジェクトや配列を再帰的に探索
+function containsKeyword(obj) {
+  if (Array.isArray(obj)) {
+    return obj.some(item => containsKeyword(item));
+  }
+  return Object.values(obj).some(value => {
+    if (value === null || value === undefined) return false;
 
-  // オブジェクトや配列を再帰的に探索
-  function containsKeyword(obj) {
-    for (const key in obj) {
-      const value = obj[key];
-
-      if (value === null || value === undefined) {
-        delete obj[key];
-        continue; // nullやundefinedは削除してスキップ
-      }
-      if (typeof value === 'string') {
-        if (pattern.test(value)) {
-          return true;
-        }
-      } else if (typeof value === 'object' && value !== null) {
-        if (containsKeyword(value)) {
-          return true;
-        }
-      }
+    if (typeof value === 'string') {
+      return pattern.test(value);
+    } else if (typeof value === 'object') {
+      return containsKeyword(value);
     }
     return false;
-  }
-
-  for (const item of data) {
-    if (containsKeyword(item)) {
-      result.push(item);
+  });
+}
+// 検索本体 return data.filter(item => containsKeyword(item));
+const filter_data = data.filter(item => containsKeyword(item));
+return filter_data.map(item => {
+  // 不要なプロパティを削除  
+  const newItem = {};
+    for (const key in item) {
+      if (item[key] !== null && item[key] !== undefined) {
+        newItem[key] = item[key];
+      }
     }
-  }
-  return result;
+    return newItem;
+  }); 
 }
 
 // 結果表示を組み立てる
@@ -86,12 +84,10 @@ input.addEventListener("keyup", function () {
       let search_word = input.value;
       const result = searchObjectsByKeyword(data, search_word); // ←検索したい単語を指定
       console.log('result:', result);
-      // const keys2 = Object.keys(result);
-      const resultList = createResult(result); //(keys2);
+      const resultList = createResult(result);
       document.getElementById('resultHtml').innerHTML = resultList[0];
       document.getElementById('resultTotal').innerHTML = '<div class="total">Total: ' + resultList[1] + '件です。</div>';
             document.getElementById('clickBtn1').innerHTML = '<input type="button" value="詳細表示" id="clickBtn1" />';
-        // } else if(span.textContent == 0) {
         } else {
             console.log('ここで要素を消す');
             deleteElem('.resultHtml4');
@@ -126,22 +122,31 @@ input.addEventListener("keyup", function () {
 
     </div>
 
-<script>
-        // 詳細表示をトグルする
-        const btn = document.getElementById('clickBtn1');
-        const categories = document.getElementsByClassName('hidden2');
+<script>// ...existing code...
+// 詳細表示をトグルする
+const btn = document.getElementById('clickBtn1');
 
-        btn.addEventListener('click', (evt) => {
-            console.log(categories);
-            console.log(categories.length);
-            const categories_length = categories.length;
-             Array.prototype.forEach.call( categories , e => {
-                console.log( e ) ;
-                e.classList.toggle('hidden');
-                console.log('categories:', categories);
-            });
-            
-        });
+btn.addEventListener('click', () => {
+  const categories = document.getElementsByClassName('hidden2');
+  // Array.prototype.forEach.call(categories, e => {
+  //   if (e.style.display === 'none' || getComputedStyle(e).display === 'none') {
+  //     e.style.display = 'block';
+  //   } else {
+  //     e.style.display = 'none';
+  //   }
+  // });
+  ///////
+  Array.from(categories).forEach(e => {
+    if (e.classList.contains('hidden')) {
+      e.classList.remove('hidden');
+    } else {
+      e.classList.add('hidden');
+    }
+  });
+  ///////
+
+});
+
 </script>
 </body>
 </html>
